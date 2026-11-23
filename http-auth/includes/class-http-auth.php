@@ -18,7 +18,7 @@ final class HTTP_Auth {
 	 *
 	 * @var string
 	 */
-	public $version = '1.0.1';
+	public $version = HTTP_AUTH_VERSION;
 
 	/**
 	 * Class constructor.
@@ -38,7 +38,6 @@ final class HTTP_Auth {
 	private function define_constants() {
 		$this->define( 'HTTP_AUTH_BASENAME', plugin_basename( HTTP_AUTH_FILE ) );
 		$this->define( 'HTTP_AUTH_PATH', plugin_dir_path( HTTP_AUTH_FILE ) );
-		$this->define( 'HTTP_AUTH_VERSION', $this->version );
 	}
 
 	/**
@@ -63,6 +62,8 @@ final class HTTP_Auth {
 	 * @access private
 	 */
 	private function includes() {
+		include_once HTTP_AUTH_PATH . 'includes/class-http-auth-config.php';
+		include_once HTTP_AUTH_PATH . 'includes/class-http-auth-htaccess.php';
 		include_once HTTP_AUTH_PATH . 'includes/class-http-auth-frontend.php';
 		include_once HTTP_AUTH_PATH . 'admin/class-http-auth-admin.php';
 
@@ -78,6 +79,32 @@ final class HTTP_Auth {
 	 */
 	private function init_hooks() {
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+		add_action( 'init', array( 'HTTP_Auth_Config', 'maybe_upgrade' ), 1 );
+
+		register_activation_hook( HTTP_AUTH_FILE, array( __CLASS__, 'activate' ) );
+		register_deactivation_hook( HTTP_AUTH_FILE, array( __CLASS__, 'deactivate' ) );
+	}
+
+	/**
+	 * Re-add the .htaccess rules on plugin activation if HTTP Auth is enabled.
+	 *
+	 * @access public
+	 * @since  1.1.0
+	 */
+	public static function activate() {
+		if ( HTTP_Auth_Config::has_enabled_mode() ) {
+			HTTP_Auth_Htaccess::add_rules();
+		}
+	}
+
+	/**
+	 * Remove the .htaccess rules on plugin deactivation.
+	 *
+	 * @access public
+	 * @since  1.1.0
+	 */
+	public static function deactivate() {
+		HTTP_Auth_Htaccess::remove_rules();
 	}
 
 	/**
